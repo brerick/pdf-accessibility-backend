@@ -1,0 +1,33 @@
+# Web Backend Requirements
+# Phase 2: FastAPI backend for PDF Accessibility SaaS
+
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6  # For file uploads
+python-jose[cryptography]==3.3.0  # For JWT tokens
+passlib[bcrypt]==1.7.4  # For password hashing
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+alembic==1.13.1  # Database migrations
+
+# Background processing
+celery==5.3.4
+redis==5.0.1
+
+# File handling and validation
+aiofiles==23.2.1
+python-magic==0.4.27
+
+# Development and testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2  # For testing FastAPI
+
+# Existing dependencies (from your desktop app)
+PyMuPDF>=1.23.0
+pikepdf>=8.0.0
+pdfminer.six>=20221105
+pdfplumber>=0.10.0
