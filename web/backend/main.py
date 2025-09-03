@@ -78,6 +78,7 @@ async def root():
             "analyze": "/analyze/{job_id}",
             "process": "/process/{job_id}",
             "download": "/download/{job_id}",
+            "view": "/view/{job_id}",
             "status": "/status/{job_id}"
         }
     }
@@ -215,25 +216,44 @@ async def get_job_status(job_id: str) -> JobStatus:
 
 
 @app.get("/download/{job_id}")
-async def download_result(job_id: str):
-    """Download processed PDF"""
+async def download_result(job_id: str, inline: bool = False):
+    """Download processed PDF or view original PDF inline"""
     
     if job_id not in processing_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     job = processing_jobs[job_id]
     
+    # If requesting inline view, serve the original uploaded file
+    if inline:
+        if job["status"] not in ["uploaded", "analyzed", "processing", "completed"]:
+            raise HTTPException(status_code=400, detail="PDF not available for viewing")
+        
+        temp_path = job["temp_path"]
+        if not os.path.exists(temp_path):
+            raise HTTPException(status_code=500, detail="Original file missing")
+        
+        return FileResponse(
+            temp_path,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": "inline",
+                "Content-Type": "application/pdf"
+            }
+        )
+    
+    # Otherwise, serve the processed file for download
     if job["status"] != "completed":
         raise HTTPException(status_code=400, detail="Processing not completed")
-    
+
     if "output_path" not in job:
         raise HTTPException(status_code=500, detail="Output file not found")
-    
+
     output_path = job["output_path"]
-    
+
     if not os.path.exists(output_path):
         raise HTTPException(status_code=500, detail="Output file missing")
-    
+
     # Return file for download
     filename = f"accessible_{job['filename']}"
     return FileResponse(
@@ -241,6 +261,35 @@ async def download_result(job_id: str):
         media_type="application/pdf",
         filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.get("/view/{job_id}")
+async def view_pdf(job_id: str):
+    """View original uploaded PDF (for PDF viewer embedding)"""
+    
+    if job_id not in processing_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job = processing_jobs[job_id]
+    
+    # Allow viewing after upload (don't require processing completion)
+    if job["status"] not in ["uploaded", "analyzed", "processing", "completed"]:
+        raise HTTPException(status_code=400, detail="PDF not available for viewing")
+    
+    temp_path = job["temp_path"]
+    
+    if not os.path.exists(temp_path):
+        raise HTTPException(status_code=500, detail="Original file missing")
+    
+    # Return file for inline viewing (not download)
+    return FileResponse(
+        temp_path,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": "inline",
+            "Content-Type": "application/pdf"
+        }
     )
 
 
